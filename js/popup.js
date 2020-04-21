@@ -126,6 +126,7 @@ function showTable(table){
       id_subject: `input-subject-${i+1}`,
       id_endtime: `input-endtime-${i+1}`,
       id_dow: `input-dow-${i+1}`,
+      timeoutID: `${row.timeoutID}`,
       btnSave: {id: `save-${i+1}`},
       btnRemove: {id: `remove-${i+1}`},
       btnEdit: {id: `edit-${i+1}`}
@@ -168,17 +169,32 @@ function onSaveRow(row){
     // get subject's name and endtime
     let subject = $(`#${row.id_subject}`).val();
     let endtime = $(`#${row.id_endtime}`).val();
+    let dow = $(`#${row.id_dow}`).val();
     if (!subject || !endtime){
       //$('#modal-alert').modal();
       //$("#body")[0].style.minHeight="400px";
       alert("You must set values for subject and endtime");
       return;
     }
-    let dow = $(`#${row.id_dow}`).val();
+
+    // setup alert
+    var now = new Date();
+    // if dow is today (as day of week)
+    let timeoutID;
+    if (weekdays[dow] == now.getDay()){
+      let subject = $(`#${row.id_subject}`).val();
+      chrome.runtime.sendMessage({type: "set", endtime: endtime, message: `You have ${subject} need to feedback`}, function(response) {
+        timeoutID = response.timeoutID;
+        row.timeoutID = timeoutID;
+        console.log(timeoutID);
+      });
+    }
+
+    // save to localStorage
     let tmp = table_data.filter(function(obj){
       return obj.subject !== subject;
     });
-    tmp.push({subject: subject, endtime: endtime, dow: dow});
+    tmp.push({subject: subject, endtime: endtime, dow: dow, timeoutID: timeoutID});
     table_data = tmp;
     localStorage.setItem(`table_data`, JSON.stringify(table_data));
 
@@ -189,6 +205,8 @@ function onSaveRow(row){
     btnSave.attr('id', `edit-${row.index}`);
     btnSave.text("Edit");
     onEditRow(row); 
+
+    alert(`You've set timer for subject ${subject} at ${endtime} - ${dow} every week`);
   });
 }
 
@@ -203,6 +221,19 @@ function onRemoveRow(row){
     })
     localStorage.setItem(`table_data`, JSON.stringify(table_data));
     btnRemove.parentsUntil("tbody").remove();
+    
+    let dow = $(`#${row.id_dow}`).val();
+    // clear alert
+    var now = new Date();
+    // if dow is today (as day of week)
+    if (weekdays[dow] == now.getDay()){
+      if (r.timeoutID){
+        chrome.runtime.sendMessage({type: "clear", timeoutID: r.timeoutID}, function(response) {
+          console.log("cleared alert");
+        });
+      }
+    }
   });
   row.btnRemove.onclick = true;
 }
+
