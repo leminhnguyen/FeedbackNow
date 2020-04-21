@@ -74,7 +74,7 @@ function clearAlertFeedback(timeoutID){
 
 
 function myAlert(message){
-  if(window.confirm(`${message}\nGo to feedback page right now ?`)){
+  if(window.confirm(`${message}` + "\nGo to feedback page right now ?")){
     chrome.tabs.create({ url: "https://qldt.hust.edu.vn/student.html"});
   }
 }
